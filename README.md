@@ -1,71 +1,84 @@
-# Getting Started with Create React App
+# TeamOps Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Internal management tool with React + Express + Prisma + PostgreSQL. CI pipeline runs lint, typecheck, unit/integration, e2e, and build.
 
-## Available Scripts
+## CI Status
 
-In the project directory, you can run:
+![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Backend
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. Set `.env`:
+   - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+   - `FRONTEND_URL=http://localhost:5173`
+   - `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/teamops`
+2. Install & run
+```bash
+cd backend
+npm ci
+npx prisma generate
+npx prisma migrate dev
+npm run dev
+```
 
-### `npm test`
+### Frontend
+```bash
+cd frontend
+npm ci
+npm run dev
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### E2E
+```bash
+cd e2e
+npm ci
+npx playwright install
+npm run test:ci
+```
 
-### `npm run build`
+## Deployment
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Frontend (Vercel): set `VITE_BACKEND_URL` to your backend URL.
+- Backend (Railway/Render): set `PORT`, `DATABASE_URL`, `JWT_*`, `FRONTEND_URL`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Architecture
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```mermaid
+flowchart LR
+  A[React + Vite] -- Axios (Bearer) --> B[Express API]
+  B -- Prisma --> C[(PostgreSQL)]
+  A -- httpOnly cookie --> B
+  subgraph Auth
+    A <--> B
+  end
+```
 
-### `npm run eject`
+## Environment Variables
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Backend
+  - `PORT` (default 3001)
+  - `FRONTEND_URL` (CORS)
+  - `DATABASE_URL` (Postgres)
+  - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+- Frontend
+  - `VITE_BACKEND_URL` (API base URL)
+  - `VITE_DEMO_KPI_ID` (optional, for dashboard demo)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Scripts
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+At repo root:
+```bash
+npm run dev        # run frontend + backend
+npm run build      # build both
+npm run test       # frontend + backend + e2e
+npm run lint       # lint frontend + backend
+npm run typecheck  # typecheck frontend + backend
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Contributing
 
-## Learn More
+- Conventional Commits (feat:, fix:, chore:, docs:, test:, refactor:, ci:)
+- PRs require green CI and adequate tests (≥90% backend target)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# TeamOps-Dashboard

@@ -1,0 +1,171 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      FRONTEND_URL: http://localhost:5173
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/teamops
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: teamops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Backend | Install
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Backend | Prisma Generate
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Backend | Prisma Migrate
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Backend | Lint
+        working-directory: backend
+        run: npm run -s lint
+
+      - name: Backend | Typecheck
+        working-directory: backend
+        run: npm run -s typecheck
+
+      - name: Backend | Test (coverage)
+        working-directory: backend
+        run: npm run -s test:ci
+
+      - name: Upload Backend Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+
+      - name: Frontend | Install
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Frontend | Lint
+        working-directory: frontend
+        run: npm run -s lint
+
+      - name: Frontend | Typecheck
+        working-directory: frontend
+        run: npm run -s typecheck
+
+      - name: Frontend | Test
+        working-directory: frontend
+        run: npm run -s test:ci
+
+      - name: Frontend | Build
+        working-directory: frontend
+        run: npm run -s build
+
+      - name: Upload Frontend Dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: E2E | Install
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund
+
+      - name: E2E | Install Playwright Browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps
+
+      - name: Start Backend Server
+        working-directory: backend
+        run: |
+          npm run -s build
+          nohup node dist/index.js > server.log 2>&1 &
+
+      - name: Wait for Backend
+        run: npx -y wait-on@7.2.0 http://localhost:3001/api/health
+
+      - name: E2E | Run Tests (with preview webServer)
+        working-directory: e2e
+        env:
+          FRONTEND_URL: http://localhost:5173
+        run: npm run -s test:ci
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+
+  deploy-frontend-vercel:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        uses: vercel/action@v3
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: frontend
+          prod: true
+
+  deploy-backend-render:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && secrets.RENDER_DEPLOY_HOOK != '' }}
+    steps:
+      - name: Trigger Render Deploy Hook
+        run: |
+          curl -X POST "$RENDER_DEPLOY_HOOK"
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+  deploy-backend-railway:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && secrets.RAILWAY_TOKEN != '' && secrets.RAILWAY_PROJECT_ID != '' && secrets.RAILWAY_SERVICE_ID != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+      - name: Link & Deploy Backend to Railway
+        working-directory: backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+        run: |
+          railway login --token "$RAILWAY_TOKEN"
+          railway link --project "$RAILWAY_PROJECT_ID" --service "$RAILWAY_SERVICE_ID"
+          railway up --service "$RAILWAY_SERVICE_ID"
