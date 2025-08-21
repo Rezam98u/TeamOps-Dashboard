@@ -41,7 +41,8 @@ export type Kpi = z.infer<typeof kpiSchema>
 
 export const kpiValueSchema = z.object({
   id: z.string(),
-  value: z.number(),
+  // Prisma Decimal often serializes as string; coerce to number for charts/UI
+  value: z.preprocess((v) => (typeof v === 'string' ? parseFloat(v) : v), z.number()),
   date: z.string(),
   notes: z.string().nullable().optional(),
   user: userSchema.optional().nullable(),

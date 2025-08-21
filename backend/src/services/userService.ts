@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient, UserRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../middleware/errorHandler';
 import { CreateUserInput, UpdateUserInput, ChangePasswordInput } from '../schemas/user';
@@ -17,7 +17,7 @@ export const getAllUsers = async (filters: UserFilters = {}, currentUserRole: Us
     throw new AppError('Insufficient permissions', 403);
   }
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.UserWhereInput = {};
 
   if (filters.role) {
     where.role = filters.role;

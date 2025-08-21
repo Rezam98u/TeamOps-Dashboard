@@ -54,6 +54,8 @@
     /* Optional base border color removed to avoid unknown utility errors */
   }
   body {
-    @apply bg-background text-foreground;
+    /* Use CSS vars directly to avoid unknown utility errors in Tailwind v4 */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }

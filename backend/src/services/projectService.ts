@@ -1,4 +1,4 @@
-import { PrismaClient, ProjectStatus, UserRole } from '@prisma/client';
+import { PrismaClient, ProjectStatus, UserRole, Prisma } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { CreateProjectInput, UpdateProjectInput, AssignEmployeeInput } from '../schemas/project';
 
@@ -11,7 +11,7 @@ export interface ProjectFilters {
 }
 
 export const getAllProjects = async (filters: ProjectFilters = {}, currentUserRole: UserRole, currentUserId: string) => {
-  const where: Record<string, unknown> = {};
+  const where: Prisma.ProjectWhereInput = {};
 
   if (filters.status) {
     where.status = filters.status;

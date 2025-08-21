@@ -1,8 +1,16 @@
 module.exports = {
-	root: false,
+	root: true,
+	env: {
+		node: true,
+		es2020: true,
+	},
 	parser: '@typescript-eslint/parser',
 	plugins: ['@typescript-eslint'],
 	extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
+	parserOptions: {
+		ecmaVersion: 2020,
+		sourceType: 'module',
+	},
 	rules: {
 		'no-unused-vars': 'off',
 		'@typescript-eslint/no-unused-vars': [
@@ -12,6 +20,8 @@ module.exports = {
 		'@typescript-eslint/no-explicit-any': 'warn',
 		'@typescript-eslint/explicit-function-return-type': 'warn',
 		'@typescript-eslint/no-non-null-assertion': 'warn',
+		'prefer-const': 'error',
+		'no-var': 'error',
 	},
 	overrides: [
 		{
@@ -31,36 +41,4 @@ module.exports = {
 			},
 		},
 	],
-};
-
-module.exports = {
-  env: {
-    node: true,
-    es2020: true,
-  },
-  extends: [
-    'eslint:recommended',
-  ],
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 2020,
-    sourceType: 'module',
-  },
-  plugins: ['@typescript-eslint'],
-  rules: {
-    '@typescript-eslint/no-unused-vars': 'error',
-    '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/explicit-function-return-type': 'warn',
-    '@typescript-eslint/no-non-null-assertion': 'warn',
-    'prefer-const': 'error',
-    'no-var': 'error',
-  },
-  overrides: [
-    {
-      files: ['**/*.test.ts', '**/*.spec.ts'],
-      env: {
-        jest: true,
-      },
-    },
-  ],
 };

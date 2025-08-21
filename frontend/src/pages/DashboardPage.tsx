@@ -1,25 +1,37 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import { fetchKpiValues } from '../hooks/useKpis'
+import { fetchKpiValues, useKpis } from '../hooks/useKpis'
 
 export default function DashboardPage() {
   const { user, accessToken } = useAuth()
   const [series, setSeries] = useState<{ date: string; value: number }[]>([])
+  const { data: kpis } = useKpis('')
+
   useEffect(() => {
     let active = true
     ;(async () => {
       try {
-        // Demo: attempt to load values for a known KPI id if available from env; otherwise, empty
-        const demoKpiId = import.meta.env.VITE_DEMO_KPI_ID as string | undefined
-        if (!demoKpiId) return
-        const values = await fetchKpiValues(demoKpiId, accessToken || undefined)
-        if (active) setSeries(values.map((v) => ({ date: v.date.slice(0, 10), value: v.value })))
+        // Prefer env KPI id; otherwise try the first KPI with any values
+        const envId = import.meta.env.VITE_DEMO_KPI_ID as string | undefined
+        const candidateIds = envId ? [envId] : kpis.map((k) => k.id)
+        for (const id of candidateIds) {
+          try {
+            const values = await fetchKpiValues(id, accessToken || undefined)
+            if (values.length > 0) {
+              if (active) setSeries(values.map((v) => ({ date: v.date.slice(0, 10), value: v.value })))
+              return
+            }
+          } catch {
+            // try next id
+          }
+        }
       } catch {
         // ignore
       }
     })()
     return () => { active = false }
-  }, [accessToken])
+  }, [accessToken, kpis])
+
 
   return (
     <div className="p-6 space-y-4">

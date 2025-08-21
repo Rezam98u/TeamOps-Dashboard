@@ -1,4 +1,4 @@
-import { PrismaClient, KpiType, UserRole } from '@prisma/client';
+import { PrismaClient, KpiType, UserRole, Prisma } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { CreateKpiInput, UpdateKpiInput, CreateKpiValueInput, UpdateKpiValueInput } from '../schemas/kpi';
 
@@ -12,7 +12,7 @@ export interface KpiFilters {
 }
 
 export const getAllKpis = async (filters: KpiFilters = {}, currentUserRole: UserRole, currentUserId: string) => {
-  const where: Record<string, unknown> = {};
+  const where: Prisma.KpiWhereInput = {};
 
   if (filters.type) {
     where.type = filters.type;
